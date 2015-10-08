@@ -9,6 +9,8 @@ using System.Net.Sockets;
 using HttpMachine;
 using System.Reflection;
 using log4net;
+using System.Threading;
+
 namespace Pylon
 {
 
@@ -64,6 +66,7 @@ namespace Pylon
     class HttpSvc
     {
         private TcpListener listener;
+        static bool isSvcing = false;
         Router router;
         ILog    logger;
         public HttpSvc()
@@ -73,6 +76,7 @@ namespace Pylon
         public void start(Router router,int port = 80 )
         {
             this.router = router;
+            isSvcing = true;
             listener = new TcpListener(IPAddress.Any, port);
             listener.Start();
             logger.InfoFormat("Pylon HttpSvc started! port[{0:d}]", port);
@@ -82,14 +86,15 @@ namespace Pylon
         {
             if (listener != null)
             {
+                isSvcing = false;
                 listener.Stop();
                 logger.Info("Pylon HttpSvc Stoped!");
             }
         }
         private void AcceptCallback(IAsyncResult ar)
         {
+            if (!isSvcing) return;
             var listener = ar.AsyncState as TcpListener;
-
             try
             {
                 var client = listener.EndAcceptTcpClient(ar);       
@@ -214,18 +219,24 @@ namespace Pylon
             return new NotFound();
         }
     }
-    public class PylonRestIMPL
+    public class PylonRestSvc
     {
 
         HttpSvc httpSvc;
         Router router;
 
-        public PylonRestIMPL()
+        static ManualResetEvent svcEvent = new ManualResetEvent(false);
+        public PylonRestSvc()
         {
 
             this.httpSvc = new HttpSvc();
             this.router = new Router();
             this.router.assemble();
+        }
+        public void wait()
+        {
+            svcEvent.WaitOne();
+            this.httpSvc.stop();
         }
         public void registAssemble(Assembly ass )
         {
@@ -239,13 +250,12 @@ namespace Pylon
 
         public void run()
         {
-
             this.httpSvc.start(this.router);
-
+            svcEvent.Reset();
         }
-        public void stop()
+        public static void stop()
         {
-            this.httpSvc.stop();
+            svcEvent.Set();
         }
     }
 

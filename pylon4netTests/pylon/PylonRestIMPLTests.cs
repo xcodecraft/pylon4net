@@ -6,45 +6,39 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using log4net.Config;
+using log4net ;
 namespace Pylon.Tests
 {
 
     [TestClass()]
     public class PylonRestIMPLTests
     {
-        static bool isCompleted;
-        public static ManualResetEvent testTaskEvent = new ManualResetEvent(false);
         public void setup()
         {
            
         }
         [TestMethod()]
-        public void PylonRestIMPLTest()
+        public void PylonRestSvcTest()
         {
-            testTaskEvent.Reset();
+            log4net.Config.BasicConfigurator.Configure();
             Task t = Task.Run(() => {
-                var svc = new PylonRestIMPL();
+                var svc = new PylonRestSvc();
                 svc.registAssemble("pylon4net");
                 svc.run();
-                testTaskEvent.WaitOne();
+                svc.wait();
             });
 
-            Thread.Sleep(2000); 
-            string resp = HttpCall.get("http://127.0.0.1/demo");
-            testTaskEvent.Set();
+            Thread.Sleep(100); 
+            HttpResponse resp = HttpCall.get("http://127.0.0.1/demo");
+            Assert.AreEqual(resp.body, "{\"notice\":\"OK\"}");
+            resp = HttpCall.get("http://127.0.0.1/demo");
+            resp = HttpCall.get("http://127.0.0.1/demo");
+            resp = HttpCall.get("http://127.0.0.1/notfound");
+            Console.WriteLine(resp.body);
+            PylonRestSvc.stop();
             t.Wait();
-            //Assert.Fail();
         }
 
-        [TestMethod()]
-        public void PylonRestIMPLTest1()
-        {
-            return;
-            var svc = new PylonRestIMPL();
-            svc.registAssemble("pylon4net");
-            svc.run();
-            Thread.Sleep(100000); 
-            Assert.Fail();
-        }
     }
 }
