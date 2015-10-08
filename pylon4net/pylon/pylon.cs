@@ -116,7 +116,7 @@ namespace Pylon
 
         public void send(Stream stream)
         {
-            var data = string.Format("HTTP/1.1{0:D3}{1}\r\n", this.status, this.codes[this.status]);
+            var data = string.Format("HTTP/1.1 {0:D3} {1}\r\n", this.status, this.codes[this.status]);
             sendString(stream, data);
             
             this.headers["Content-Length"] = Encoding.UTF8.GetBytes(this.body).Length.ToString();
@@ -128,6 +128,7 @@ namespace Pylon
             headsStr += "\r\n";
             sendString(stream, headsStr);
             sendString(stream, this.body);
+            stream.Close();
         }
         void sendString(Stream stream, string content)
         {
